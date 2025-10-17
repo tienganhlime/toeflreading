@@ -1,18 +1,209 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, AlertCircle, Send } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEFL Primary Test - Trung Tâm Tiếng Anh LIME</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #16a34a;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-400 via-green-500 to-green-600">
 
-const TOEFLTest = () => {
-  const [studentInfo, setStudentInfo] = useState({ name: '', class: '', parentPhone: '' });
-  const [showTest, setShowTest] = useState(false);
-  const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+<!-- Màn hình nhập thông tin -->
+<div id="infoScreen" class="min-h-screen p-4 fade-in">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mt-8">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
+                <p class="text-green-600 text-lg">Hotline: 0976222792</p>
+                <div class="mt-4 h-1 w-32 bg-green-500 mx-auto rounded"></div>
+            </div>
+            
+            <div class="bg-green-50 rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold text-green-800 mb-4">TOEFL PRIMARY STEP 2 - TEST 1</h2>
+                <div class="space-y-2 text-green-700">
+                    <p>📝 Số câu hỏi: 36 câu</p>
+                    <p>⏰ Thời gian: 30 phút</p>
+                    <p>✅ Làm bài trực tuyến, chấm điểm tự động</p>
+                    <p>📊 Kết quả sẽ được gửi về giáo viên</p>
+                </div>
+            </div>
 
-  // *** QUAN TRỌNG: Dán URL Google Apps Script của bạn vào đây ***
-  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1gSDauo8-7dQx1yzXqANwwDOF9x3cseFGDZ3Ut-IWORCdm7mqwa6dUzUQ3XfFbQ-0dg/exec';
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-green-800 font-semibold mb-2">Họ và tên học sinh *</label>
+                    <input type="text" id="studentName" 
+                        class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                        placeholder="Nhập họ tên">
+                </div>
+                
+                <div>
+                    <label class="block text-green-800 font-semibold mb-2">Lớp *</label>
+                    <input type="text" id="studentClass" 
+                        class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                        placeholder="Nhập lớp">
+                </div>
+                
+                <div>
+                    <label class="block text-green-800 font-semibold mb-2">Số điện thoại phụ huynh *</label>
+                    <input type="tel" id="parentPhone" 
+                        class="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                        placeholder="Nhập số điện thoại">
+                </div>
+            </div>
 
-  const correctAnswers = {
+            <button onclick="startTest()" 
+                class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg">
+                BẮT ĐẦU LÀM BÀI
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Màn hình làm bài -->
+<div id="testScreen" class="hidden min-h-screen p-4">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header sticky -->
+        <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6 sticky top-4 z-10">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-green-700">Trung Tâm Tiếng Anh LIME</h1>
+                    <p class="text-green-600 text-sm">Hotline: 0976222792</p>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">Học sinh: <span id="headerName"></span></p>
+                        <p class="text-sm text-gray-600">Lớp: <span id="headerClass"></span></p>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg">
+                        <svg class="w-6 h-6" id="clockIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="timer" class="text-2xl font-bold text-green-600">30:00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Tiến độ: <span id="progress">0</span>/36 câu</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progressBar" class="bg-green-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nội dung bài test -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <h2 class="text-3xl font-bold text-green-800 mb-6 text-center">TOEFL PRIMARY STEP 2 - READING TEST 1</h2>
+            
+            <div id="questionsContainer" class="space-y-8">
+                <!-- Questions will be inserted here by JavaScript -->
+            </div>
+
+            <div class="mt-8 pt-6 border-t-2 border-green-200">
+                <button onclick="submitTest()" id="submitBtn"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-xl shadow-lg flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    NỘP BÀI
+                </button>
+                
+                <div id="warningBox" class="hidden mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg flex items-start gap-2">
+                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <p class="text-yellow-800 text-sm">
+                        Bạn còn <span id="unansweredCount">36</span> câu chưa trả lời. Hãy kiểm tra lại trước khi nộp bài!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Màn hình kết quả -->
+<div id="resultScreen" class="hidden min-h-screen p-4">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mt-8 fade-in">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
+                <p class="text-green-600">Hotline: 0976222792</p>
+            </div>
+
+            <div class="text-center mb-8">
+                <svg class="w-24 h-24 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h2 class="text-3xl font-bold text-green-800 mb-4">Nộp bài thành công!</h2>
+                <p class="text-xl text-gray-700 mb-2">Cảm ơn em <span id="resultName" class="font-bold text-green-700"></span> đã hoàn thành bài test!</p>
+            </div>
+
+            <div class="bg-green-50 rounded-xl p-6 mb-6 border-2 border-green-200">
+                <div class="text-center space-y-3">
+                    <p class="text-lg text-gray-700">📝 Bài làm của em đã được gửi về giáo viên</p>
+                    <p class="text-lg text-gray-700">⏰ Thời gian làm bài: <span id="resultTime" class="font-bold text-green-700"></span></p>
+                    <p class="text-lg text-gray-700">📊 Giáo viên sẽ chấm bài và thông báo điểm sau</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h3 class="font-bold text-blue-800 mb-2">📞 Lưu ý quan trọng:</h3>
+                        <p class="text-blue-700">
+                            Giáo viên sẽ liên hệ phụ huynh qua số <span id="resultPhone" class="font-bold"></span> để thông báo kết quả. 
+                            Vui lòng chú ý điện thoại nhé!
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" 
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg">
+                Về trang chủ
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// *** QUAN TRỌNG: Dán URL Google Apps Script của bạn vào đây ***
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1gSDauo8-7dQx1yzXqANwwDOF9x3cseFGDZ3Ut-IWORCdm7mqwa6dUzUQ3XfFbQ-0dg/exec';
+
+// Đáp án đúng
+const correctAnswers = {
     2: 'C', 3: 'B', 4: 'B', 5: 'A', 6: 'B', 7: 'C',
     8: 'B', 9: 'C', 10: 'B', 11: 'C',
     12: 'B', 13: 'A',
@@ -24,99 +215,10 @@ const TOEFLTest = () => {
     31: 'B', 32: 'B', 33: 'C', 34: 'B',
     35: 'B', 36: 'B',
     37: 'B'
-  };
+};
 
-  useEffect(() => {
-    if (showTest && !isSubmitted && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            handleSubmit();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [showTest, isSubmitted, timeLeft]);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleStartTest = () => {
-    if (studentInfo.name && studentInfo.class && studentInfo.parentPhone) {
-      setShowTest(true);
-    } else {
-      alert('Vui lòng điền đầy đủ thông tin!');
-    }
-  };
-
-  const handleAnswerChange = (questionNum, answer) => {
-    setAnswers({ ...answers, [questionNum]: answer });
-  };
-
-  const calculateScore = () => {
-    let correctCount = 0;
-    Object.keys(correctAnswers).forEach(q => {
-      if (answers[q] === correctAnswers[q]) correctCount++;
-    });
-    return {
-      correctCount,
-      totalQuestions: 36,
-      percentage: Math.round((correctCount / 36) * 100)
-    };
-  };
-
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-    
-    const scoreData = calculateScore();
-    const timeUsed = 30 - Math.floor(timeLeft / 60);
-    const submittedAt = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-    
-    // Chuẩn bị dữ liệu gửi lên Google Sheets
-    const dataToSend = {
-      timestamp: submittedAt,
-      name: studentInfo.name,
-      class: studentInfo.class,
-      parentPhone: studentInfo.parentPhone,
-      score: scoreData.percentage,
-      correctAnswers: scoreData.correctCount,
-      totalQuestions: scoreData.totalQuestions,
-      timeUsed: `${timeUsed} phút`,
-      answers: JSON.stringify(answers) // Lưu đáp án dạng JSON
-    };
-
-    try {
-      // Gửi dữ liệu lên Google Sheets
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSend)
-      });
-      
-      // Note: no-cors mode không trả về response, nhưng request vẫn được gửi
-      console.log('Đã gửi kết quả lên Google Sheets');
-      
-    } catch (error) {
-      console.error('Lỗi khi gửi dữ liệu:', error);
-      alert('Có lỗi xảy ra khi gửi bài. Vui lòng liên hệ giáo viên.');
-    }
-    
-    setIsSubmitted(true);
-    setIsSubmitting(false);
-  };
-
-  const questions = [
+// Câu hỏi
+const questions = [
     { num: 2, text: 'You are reading a book. The story is so interesting that you cannot stop reading. You want to know what happens next. You are _____.', options: { A: 'bored', B: 'confused', C: 'curious' } },
     { num: 3, text: 'The weather does this. Prices in stores do this. Your mood can do this many times in one day. They _____.', options: { A: 'improve', B: 'vary', C: 'remain' } },
     { num: 4, text: 'You are playing a board game with your friends. Everyone wants to win, but only one person can be first. You are _____.', options: { A: 'cooperating', B: 'competing', C: 'celebrating' } },
@@ -153,252 +255,208 @@ const TOEFLTest = () => {
     { num: 35, text: 'What is camouflage used for?', options: { A: 'To decorate animals', B: 'To help animals hide or hunt', C: 'To make animals colorful' }, section: 'Camouflage in Nature (Questions 35-36)' },
     { num: 36, text: 'Which animal changes color with the seasons?', options: { A: 'The chameleon', B: 'The Arctic fox', C: 'The butterfly' } },
     { num: 37, text: 'What was the main reason movie theaters started selling popcorn?', options: { A: 'Customers requested it', B: 'It was cheap to make and helped theaters earn money', C: 'Other snacks were not allowed' }, section: 'Popcorn at Movies (Question 37)' }
-  ];
+];
 
-  if (!showTest) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mt-8">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
-              <p className="text-green-600 text-lg">Hotline: 0976222792</p>
-              <div className="mt-4 h-1 w-32 bg-green-500 mx-auto rounded"></div>
-            </div>
-            
-            <div className="bg-green-50 rounded-xl p-6 mb-6">
-              <h2 className="text-2xl font-bold text-green-800 mb-4">TOEFL PRIMARY STEP 2 - TEST 1</h2>
-              <div className="space-y-2 text-green-700">
-                <p>📝 Số câu hỏi: 36 câu</p>
-                <p>⏰ Thời gian: 30 phút</p>
-                <p>✅ Làm bài trực tuyến, chấm điểm tự động</p>
-                <p>📊 Kết quả sẽ được gửi về giáo viên</p>
-              </div>
-            </div>
+let studentInfo = {};
+let answers = {};
+let timeLeft = 1800; // 30 minutes in seconds
+let timerInterval;
+let startTime;
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-green-800 font-semibold mb-2">Họ và tên học sinh *</label>
-                <input
-                  type="text"
-                  value={studentInfo.name}
-                  onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
-                  placeholder="Nhập họ tên"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-green-800 font-semibold mb-2">Lớp *</label>
-                <input
-                  type="text"
-                  value={studentInfo.class}
-                  onChange={(e) => setStudentInfo({ ...studentInfo, class: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
-                  placeholder="Nhập lớp"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-green-800 font-semibold mb-2">Số điện thoại phụ huynh *</label>
-                <input
-                  type="tel"
-                  value={studentInfo.parentPhone}
-                  onChange={(e) => setStudentInfo({ ...studentInfo, parentPhone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
-                  placeholder="Nhập số điện thoại"
-                />
-              </div>
-            </div>
+// Bắt đầu làm bài
+function startTest() {
+    const name = document.getElementById('studentName').value.trim();
+    const classVal = document.getElementById('studentClass').value.trim();
+    const phone = document.getElementById('parentPhone').value.trim();
+    
+    if (!name || !classVal || !phone) {
+        alert('Vui lòng điền đầy đủ thông tin!');
+        return;
+    }
+    
+    studentInfo = { name, class: classVal, parentPhone: phone };
+    
+    document.getElementById('infoScreen').classList.add('hidden');
+    document.getElementById('testScreen').classList.remove('hidden');
+    
+    document.getElementById('headerName').textContent = name;
+    document.getElementById('headerClass').textContent = classVal;
+    
+    renderQuestions();
+    startTimer();
+    startTime = new Date();
+}
 
-            <button
-              onClick={handleStartTest}
-              className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg"
-            >
-              BẮT ĐẦU LÀM BÀI
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mt-8">
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
-              <p className="text-green-600">Hotline: 0976222792</p>
-            </div>
-
-            <div className="text-center mb-8">
-              <CheckCircle className="w-24 h-24 text-green-500 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-green-800 mb-4">Nộp bài thành công!</h2>
-              <p className="text-xl text-gray-700 mb-2">Cảm ơn em <span className="font-bold text-green-700">{studentInfo.name}</span> đã hoàn thành bài test!</p>
-            </div>
-
-            <div className="bg-green-50 rounded-xl p-6 mb-6 border-2 border-green-200">
-              <div className="text-center space-y-3">
-                <p className="text-lg text-gray-700">
-                  📝 Bài làm của em đã được gửi về giáo viên
-                </p>
-                <p className="text-lg text-gray-700">
-                  ⏰ Thời gian làm bài: <span className="font-bold text-green-700">{30 - Math.floor(timeLeft / 60)} phút</span>
-                </p>
-                <p className="text-lg text-gray-700">
-                  📊 Giáo viên sẽ chấm bài và thông báo điểm sau
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={24} />
-                <div>
-                  <h3 className="font-bold text-blue-800 mb-2">📞 Lưu ý quan trọng:</h3>
-                  <p className="text-blue-700">
-                    Giáo viên sẽ liên hệ phụ huynh qua số <span className="font-bold">{studentInfo.parentPhone}</span> để thông báo kết quả. 
-                    Vui lòng chú ý điện thoại nhé!
-                  </p>
+// Render câu hỏi
+function renderQuestions() {
+    const container = document.getElementById('questionsContainer');
+    let html = '';
+    
+    questions.forEach(q => {
+        if (q.section) {
+            html += `<h3 class="text-xl font-bold text-green-700 mb-4 mt-2">${q.section}</h3>`;
+        }
+        
+        html += `
+        <div class="border-b-2 border-green-100 pb-6 last:border-b-0">
+            <div class="flex gap-4">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                        ${q.num}
+                    </div>
                 </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg"
-            >
-              Về trang chủ
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
-      <div className="max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6 sticky top-4 z-10">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-green-700">Trung Tâm Tiếng Anh LIME</h1>
-              <p className="text-green-600 text-sm">Hotline: 0976222792</p>
-            </div>
-            
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Học sinh: {studentInfo.name}</p>
-                <p className="text-sm text-gray-600">Lớp: {studentInfo.class}</p>
-              </div>
-              
-              <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg">
-                <Clock className={`${timeLeft < 300 ? 'text-red-600' : 'text-green-600'}`} />
-                <span className={`text-2xl font-bold ${timeLeft < 300 ? 'text-red-600' : 'text-green-600'}`}>
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>Tiến độ: {Object.keys(answers).length}/36 câu</span>
-              <span>{Math.round((Object.keys(answers).length / 36) * 100)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-green-600 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${(Object.keys(answers).length / 36) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-3xl font-bold text-green-800 mb-6 text-center">TOEFL PRIMARY STEP 2 - READING TEST 1</h2>
-          
-          <div className="space-y-8">
-            {questions.map((q, idx) => (
-              <div key={q.num} className="border-b-2 border-green-100 pb-6 last:border-b-0">
-                {q.section && (
-                  <h3 className="text-xl font-bold text-green-700 mb-4 mt-2">{q.section}</h3>
-                )}
                 
-                <div className="flex gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
-                      {q.num}
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <p className="text-gray-800 mb-4 text-lg leading-relaxed">{q.text}</p>
+                <div class="flex-1">
+                    <p class="text-gray-800 mb-4 text-lg leading-relaxed">${q.text}</p>
                     
-                    <div className="space-y-2">
-                      {Object.entries(q.options).map(([key, value]) => (
-                        <label
-                          key={key}
-                          className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all ${
-                            answers[q.num] === key
-                              ? 'bg-green-100 border-2 border-green-500'
-                              : 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={`q${q.num}`}
-                            value={key}
-                            checked={answers[q.num] === key}
-                            onChange={() => handleAnswerChange(q.num, key)}
-                            className="mt-1 w-5 h-5 text-green-600"
-                          />
-                          <span className="flex-1 text-gray-700">
-                            <span className="font-semibold text-green-700">{key}.</span> {value}
-                          </span>
-                        </label>
-                      ))}
+                    <div class="space-y-2">
+        `;
+        
+        Object.entries(q.options).forEach(([key, value]) => {
+            html += `
+                <label class="flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all bg-gray-50 border-2 border-gray-200 hover:bg-gray-100 answer-option" data-question="${q.num}" data-answer="${key}">
+                    <input type="radio" name="q${q.num}" value="${key}" onchange="handleAnswer(${q.num}, '${key}')"
+                        class="mt-1 w-5 h-5 text-green-600">
+                    <span class="flex-1 text-gray-700">
+                        <span class="font-semibold text-green-700">${key}.</span> ${value}
+                    </span>
+                </label>
+            `;
+        });
+        
+        html += `
                     </div>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 pt-6 border-t-2 border-green-200">
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className={`w-full ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-xl shadow-lg flex items-center justify-center gap-2`}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  <span>Đang nộp bài...</span>
-                </>
-              ) : (
-                <>
-                  <Send size={24} />
-                  NỘP BÀI
-                </>
-              )}
-            </button>
-            
-            {Object.keys(answers).length < 36 && !isSubmitting && (
-              <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg flex items-start gap-2">
-                <AlertCircle className="text-yellow-600 flex-shrink-0 mt-1" size={20} />
-                <p className="text-yellow-800 text-sm">
-                  Bạn còn {36 - Object.keys(answers).length} câu chưa trả lời. Hãy kiểm tra lại trước khi nộp bài!
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
-};
+        `;
+    });
+    
+    container.innerHTML = html;
+}
 
-export default TOEFLTest;
+// Xử lý chọn đáp án
+function handleAnswer(questionNum, answer) {
+    answers[questionNum] = answer;
+    updateProgress();
+    
+    // Highlight selected answer
+    document.querySelectorAll(`label[data-question="${questionNum}"]`).forEach(label => {
+        if (label.dataset.answer === answer) {
+            label.classList.remove('bg-gray-50', 'border-gray-200');
+            label.classList.add('bg-green-100', 'border-green-500');
+        } else {
+            label.classList.remove('bg-green-100', 'border-green-500');
+            label.classList.add('bg-gray-50', 'border-gray-200');
+        }
+    });
+}
+
+// Cập nhật thanh tiến độ
+function updateProgress() {
+    const answered = Object.keys(answers).length;
+    const percent = Math.round((answered / 36) * 100);
+    
+    document.getElementById('progress').textContent = answered;
+    document.getElementById('progressPercent').textContent = percent + '%';
+    document.getElementById('progressBar').style.width = percent + '%';
+    
+    const unanswered = 36 - answered;
+    if (unanswered > 0) {
+        document.getElementById('warningBox').classList.remove('hidden');
+        document.getElementById('unansweredCount').textContent = unanswered;
+    } else {
+        document.getElementById('warningBox').classList.add('hidden');
+    }
+}
+
+// Bắt đầu đếm giờ
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        document.getElementById('timer').textContent = timeString;
+        
+        const clockIcon = document.getElementById('clockIcon');
+        const timerSpan = document.getElementById('timer');
+        
+        if (timeLeft < 300) { // < 5 minutes
+            clockIcon.classList.add('text-red-600');
+            clockIcon.classList.remove('text-green-600');
+            timerSpan.classList.add('text-red-600');
+            timerSpan.classList.remove('text-green-600');
+        }
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            submitTest();
+        }
+    }, 1000);
+}
+
+// Nộp bài
+async function submitTest() {
+    clearInterval(timerInterval);
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+        <div class="spinner"></div>
+        <span>Đang nộp bài...</span>
+    `;
+    
+    // Tính điểm
+    let correctCount = 0;
+    Object.keys(correctAnswers).forEach(q => {
+        if (answers[q] === correctAnswers[q]) correctCount++;
+    });
+    
+    const score = Math.round((correctCount / 36) * 100);
+    const endTime = new Date();
+    const timeUsed = Math.round((endTime - startTime) / 60000); // minutes
+    
+    // Chuẩn bị dữ liệu
+    const dataToSend = {
+        timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+        name: studentInfo.name,
+        class: studentInfo.class,
+        parentPhone: studentInfo.parentPhone,
+        score: score,
+        correctAnswers: correctCount,
+        totalQuestions: 36,
+        timeUsed: timeUsed + ' phút',
+        answers: JSON.stringify(answers)
+    };
+    
+    // Gửi lên Google Sheets
+    try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+        
+        console.log('Đã gửi kết quả lên Google Sheets');
+    } catch (error) {
+        console.error('Lỗi khi gửi dữ liệu:', error);
+    }
+    
+    // Hiển thị màn hình kết quả
+    document.getElementById('testScreen').classList.add('hidden');
+    document.getElementById('resultScreen').classList.remove('hidden');
+    
+    document.getElementById('resultName').textContent = studentInfo.name;
+    document.getElementById('resultTime').textContent = timeUsed + ' phút';
+    document.getElementById('resultPhone').textContent = studentInfo.parentPhone;
+}
+</script>
+
+</body>
+</html>
