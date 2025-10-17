@@ -1,0 +1,404 @@
+import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle, AlertCircle, Send } from 'lucide-react';
+
+const TOEFLTest = () => {
+  const [studentInfo, setStudentInfo] = useState({ name: '', class: '', parentPhone: '' });
+  const [showTest, setShowTest] = useState(false);
+  const [answers, setAnswers] = useState({});
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // *** QUAN TRỌNG: Dán URL Google Apps Script của bạn vào đây ***
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1gSDauo8-7dQx1yzXqANwwDOF9x3cseFGDZ3Ut-IWORCdm7mqwa6dUzUQ3XfFbQ-0dg/exec';
+
+  const correctAnswers = {
+    2: 'C', 3: 'B', 4: 'B', 5: 'A', 6: 'B', 7: 'C',
+    8: 'B', 9: 'C', 10: 'B', 11: 'C',
+    12: 'B', 13: 'A',
+    14: 'B', 15: 'A', 16: 'C',
+    17: 'B', 18: 'C',
+    19: 'B', 20: 'B', 21: 'B', 22: 'B',
+    23: 'B', 24: 'C', 25: 'A', 26: 'B',
+    27: 'B', 28: 'C', 29: 'B', 30: 'C',
+    31: 'B', 32: 'B', 33: 'C', 34: 'B',
+    35: 'B', 36: 'B',
+    37: 'B'
+  };
+
+  useEffect(() => {
+    if (showTest && !isSubmitted && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            handleSubmit();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [showTest, isSubmitted, timeLeft]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartTest = () => {
+    if (studentInfo.name && studentInfo.class && studentInfo.parentPhone) {
+      setShowTest(true);
+    } else {
+      alert('Vui lòng điền đầy đủ thông tin!');
+    }
+  };
+
+  const handleAnswerChange = (questionNum, answer) => {
+    setAnswers({ ...answers, [questionNum]: answer });
+  };
+
+  const calculateScore = () => {
+    let correctCount = 0;
+    Object.keys(correctAnswers).forEach(q => {
+      if (answers[q] === correctAnswers[q]) correctCount++;
+    });
+    return {
+      correctCount,
+      totalQuestions: 36,
+      percentage: Math.round((correctCount / 36) * 100)
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    const scoreData = calculateScore();
+    const timeUsed = 30 - Math.floor(timeLeft / 60);
+    const submittedAt = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    
+    // Chuẩn bị dữ liệu gửi lên Google Sheets
+    const dataToSend = {
+      timestamp: submittedAt,
+      name: studentInfo.name,
+      class: studentInfo.class,
+      parentPhone: studentInfo.parentPhone,
+      score: scoreData.percentage,
+      correctAnswers: scoreData.correctCount,
+      totalQuestions: scoreData.totalQuestions,
+      timeUsed: `${timeUsed} phút`,
+      answers: JSON.stringify(answers) // Lưu đáp án dạng JSON
+    };
+
+    try {
+      // Gửi dữ liệu lên Google Sheets
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      });
+      
+      // Note: no-cors mode không trả về response, nhưng request vẫn được gửi
+      console.log('Đã gửi kết quả lên Google Sheets');
+      
+    } catch (error) {
+      console.error('Lỗi khi gửi dữ liệu:', error);
+      alert('Có lỗi xảy ra khi gửi bài. Vui lòng liên hệ giáo viên.');
+    }
+    
+    setIsSubmitted(true);
+    setIsSubmitting(false);
+  };
+
+  const questions = [
+    { num: 2, text: 'You are reading a book. The story is so interesting that you cannot stop reading. You want to know what happens next. You are _____.', options: { A: 'bored', B: 'confused', C: 'curious' } },
+    { num: 3, text: 'The weather does this. Prices in stores do this. Your mood can do this many times in one day. They _____.', options: { A: 'improve', B: 'vary', C: 'remain' } },
+    { num: 4, text: 'You are playing a board game with your friends. Everyone wants to win, but only one person can be first. You are _____.', options: { A: 'cooperating', B: 'competing', C: 'celebrating' } },
+    { num: 5, text: 'This word describes something that is not dirty. This word also describes water you can drink safely. This word can clean air that is good to breathe.', options: { A: 'pure', B: 'fresh', C: 'clear' } },
+    { num: 6, text: 'Your teacher gives the class a difficult math problem. You think hard and find the answer before anyone else. Your teacher is impressed. You _____ the problem.', options: { A: 'created', B: 'solved', C: 'avoided' } },
+    { num: 7, text: 'You are at the library studying. Your friend keeps talking loudly. You want to focus on your work. You ask your friend to _____.', options: { A: 'speak up', B: 'calm down', C: 'quiet down' } },
+    { num: 8, text: 'When can parents visit the book fair after work?', options: { A: 'Any day of the week', B: 'Only on Thursday evening', C: 'On Wednesday at 2:00 PM' }, section: 'SPRING BOOK FAIR (Questions 8-11)' },
+    { num: 9, text: 'What can you NOT buy at the book fair?', options: { A: 'Storybooks', B: 'Reading pillows', C: 'Pencils and pens' } },
+    { num: 10, text: 'How will the school use the money from the book fair?', options: { A: 'To pay the teachers', B: 'To buy books for the library', C: 'To invite more authors' } },
+    { num: 11, text: 'If you want to meet an author, when should you go?', options: { A: 'Monday morning', B: 'Thursday evening', C: 'Wednesday afternoon' } },
+    { num: 12, text: 'Why is the practice location changing?', options: { A: 'The gym is available this week', B: 'The outdoor field is too wet', C: 'The team needs to practice new skills' }, section: 'Soccer Practice Email (Questions 12-13)' },
+    { num: 13, text: 'What does Coach Stevens tell Marcus to bring?', options: { A: 'Indoor shoes', B: 'Soccer cleats', C: 'A towel' } },
+    { num: 14, text: 'What should students put in the blue bins?', options: { A: 'Plastic bottles', B: 'Paper and cardboard', C: 'Aluminum cans' }, section: 'Recycling Program (Questions 14-16)' },
+    { num: 15, text: "What is the school's goal for this year?", options: { A: 'To reduce trash by 40%', B: 'To buy more recycling bins', C: 'To teach students about the environment' } },
+    { num: 16, text: 'What should students do if they are not sure where to put something?', options: { A: 'Put it in any bin', B: 'Take it home', C: 'Ask a teacher' } },
+    { num: 17, text: 'What must students do for each book they read?', options: { A: 'Tell the librarian about it', B: 'Write a short review', C: 'Draw a picture' }, section: 'Summer Reading Program (Questions 17-18)' },
+    { num: 18, text: 'What prize do students get if they read 20 books?', options: { A: 'Only a certificate', B: 'A certificate and a bookmark', C: 'A certificate and a gift card' } },
+    { num: 19, text: 'According to the instructions, what do you do in step 1?', options: { A: 'Fold the corners down', B: 'Make a crease down the middle', C: 'Fold the paper like a triangle' }, section: 'Paper Airplane Instructions (Questions 19-22)' },
+    { num: 20, text: 'What does "hot dog style" mean in the instructions?', options: { A: 'Folding the short edges together', B: 'Folding the long edges together', C: 'Folding diagonally' } },
+    { num: 21, text: 'What should you do if your airplane dives down when you throw it?', options: { A: 'Throw it harder', B: 'Fold the back edges of wings up', C: 'Make new wings' } },
+    { num: 22, text: 'What is the purpose of step 5?', options: { A: 'To make the plane look nice', B: 'To help the plane fly better', C: 'To make the wings stronger' } },
+    { num: 23, text: 'How big should a tank be for one goldfish?', options: { A: 'At least 5 gallons', B: 'At least 10 gallons', C: 'At least 20 gallons' }, section: 'Pet Goldfish Care (Questions 23-26)' },
+    { num: 24, text: 'Why should you let the water sit for 24 hours?', options: { A: 'To let chemicals disappear', B: 'To make the water warmer', C: 'To let the water temperature stabilize and remove chemicals' } },
+    { num: 25, text: 'How often should you feed your goldfish?', options: { A: 'Once or twice a day', B: 'Three times a day', C: 'Every few hours' } },
+    { num: 26, text: 'According to the instructions, what should you NOT do when cleaning the tank?', options: { A: "Remove 25% of the water", B: 'Use soap to clean it', C: 'Replace old water with fresh water' } },
+    { num: 27, text: 'What did Emma and Tyler decide to build?', options: { A: 'A kite', B: 'A birdhouse', C: 'A bookshelf' }, section: "Emma & Tyler's Story (Questions 27-30)" },
+    { num: 28, text: 'Who helped them cut the wood?', options: { A: 'Their mom', B: 'Their friend', C: 'Their dad' } },
+    { num: 29, text: 'How did they feel when the bird used their house?', options: { A: 'Sad', B: 'Proud', C: 'Tired' } },
+    { num: 30, text: 'What lesson did they learn from this project?', options: { A: 'To work faster', B: 'To enjoy rainy days', C: 'To help each other and nature' } },
+    { num: 31, text: 'Why was Daniel nervous at first?', options: { A: "He didn't like animals", B: "He had never been to a farm", C: "He didn't know Mia well" }, section: "Daniel's Farm Visit (Questions 31-34)" },
+    { num: 32, text: 'What did Daniel do on the farm?', options: { A: 'Painted the barn', B: 'Collected eggs and fed animals', C: 'Drove a tractor' } },
+    { num: 33, text: 'What did Daniel learn about farm life?', options: { A: "It's easy work", B: "It's boring", C: "It's hard but rewarding" } },
+    { num: 34, text: 'What did Daniel plan to do at the end?', options: { A: 'Move to the farm', B: 'Visit again next summer', C: 'Buy a chicken' } },
+    { num: 35, text: 'What is camouflage used for?', options: { A: 'To decorate animals', B: 'To help animals hide or hunt', C: 'To make animals colorful' }, section: 'Camouflage in Nature (Questions 35-36)' },
+    { num: 36, text: 'Which animal changes color with the seasons?', options: { A: 'The chameleon', B: 'The Arctic fox', C: 'The butterfly' } },
+    { num: 37, text: 'What was the main reason movie theaters started selling popcorn?', options: { A: 'Customers requested it', B: 'It was cheap to make and helped theaters earn money', C: 'Other snacks were not allowed' }, section: 'Popcorn at Movies (Question 37)' }
+  ];
+
+  if (!showTest) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mt-8">
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
+              <p className="text-green-600 text-lg">Hotline: 0976222792</p>
+              <div className="mt-4 h-1 w-32 bg-green-500 mx-auto rounded"></div>
+            </div>
+            
+            <div className="bg-green-50 rounded-xl p-6 mb-6">
+              <h2 className="text-2xl font-bold text-green-800 mb-4">TOEFL PRIMARY STEP 2 - TEST 1</h2>
+              <div className="space-y-2 text-green-700">
+                <p>📝 Số câu hỏi: 36 câu</p>
+                <p>⏰ Thời gian: 30 phút</p>
+                <p>✅ Làm bài trực tuyến, chấm điểm tự động</p>
+                <p>📊 Kết quả sẽ được gửi về giáo viên</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-green-800 font-semibold mb-2">Họ và tên học sinh *</label>
+                <input
+                  type="text"
+                  value={studentInfo.name}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                  placeholder="Nhập họ tên"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-green-800 font-semibold mb-2">Lớp *</label>
+                <input
+                  type="text"
+                  value={studentInfo.class}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, class: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                  placeholder="Nhập lớp"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-green-800 font-semibold mb-2">Số điện thoại phụ huynh *</label>
+                <input
+                  type="tel"
+                  value={studentInfo.parentPhone}
+                  onChange={(e) => setStudentInfo({ ...studentInfo, parentPhone: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleStartTest}
+              className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg"
+            >
+              BẮT ĐẦU LÀM BÀI
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mt-8">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
+              <p className="text-green-600">Hotline: 0976222792</p>
+            </div>
+
+            <div className="text-center mb-8">
+              <CheckCircle className="w-24 h-24 text-green-500 mx-auto mb-4" />
+              <h2 className="text-3xl font-bold text-green-800 mb-4">Nộp bài thành công!</h2>
+              <p className="text-xl text-gray-700 mb-2">Cảm ơn em <span className="font-bold text-green-700">{studentInfo.name}</span> đã hoàn thành bài test!</p>
+            </div>
+
+            <div className="bg-green-50 rounded-xl p-6 mb-6 border-2 border-green-200">
+              <div className="text-center space-y-3">
+                <p className="text-lg text-gray-700">
+                  📝 Bài làm của em đã được gửi về giáo viên
+                </p>
+                <p className="text-lg text-gray-700">
+                  ⏰ Thời gian làm bài: <span className="font-bold text-green-700">{30 - Math.floor(timeLeft / 60)} phút</span>
+                </p>
+                <p className="text-lg text-gray-700">
+                  📊 Giáo viên sẽ chấm bài và thông báo điểm sau
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="text-blue-600 flex-shrink-0 mt-1" size={24} />
+                <div>
+                  <h3 className="font-bold text-blue-800 mb-2">📞 Lưu ý quan trọng:</h3>
+                  <p className="text-blue-700">
+                    Giáo viên sẽ liên hệ phụ huynh qua số <span className="font-bold">{studentInfo.parentPhone}</span> để thông báo kết quả. 
+                    Vui lòng chú ý điện thoại nhé!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-lg shadow-lg"
+            >
+              Về trang chủ
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-green-600 p-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6 sticky top-4 z-10">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-green-700">Trung Tâm Tiếng Anh LIME</h1>
+              <p className="text-green-600 text-sm">Hotline: 0976222792</p>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Học sinh: {studentInfo.name}</p>
+                <p className="text-sm text-gray-600">Lớp: {studentInfo.class}</p>
+              </div>
+              
+              <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg">
+                <Clock className={`${timeLeft < 300 ? 'text-red-600' : 'text-green-600'}`} />
+                <span className={`text-2xl font-bold ${timeLeft < 300 ? 'text-red-600' : 'text-green-600'}`}>
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Tiến độ: {Object.keys(answers).length}/36 câu</span>
+              <span>{Math.round((Object.keys(answers).length / 36) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${(Object.keys(answers).length / 36) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          <h2 className="text-3xl font-bold text-green-800 mb-6 text-center">TOEFL PRIMARY STEP 2 - READING TEST 1</h2>
+          
+          <div className="space-y-8">
+            {questions.map((q, idx) => (
+              <div key={q.num} className="border-b-2 border-green-100 pb-6 last:border-b-0">
+                {q.section && (
+                  <h3 className="text-xl font-bold text-green-700 mb-4 mt-2">{q.section}</h3>
+                )}
+                
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">
+                      {q.num}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <p className="text-gray-800 mb-4 text-lg leading-relaxed">{q.text}</p>
+                    
+                    <div className="space-y-2">
+                      {Object.entries(q.options).map(([key, value]) => (
+                        <label
+                          key={key}
+                          className={`flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all ${
+                            answers[q.num] === key
+                              ? 'bg-green-100 border-2 border-green-500'
+                              : 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`q${q.num}`}
+                            value={key}
+                            checked={answers[q.num] === key}
+                            onChange={() => handleAnswerChange(q.num, key)}
+                            className="mt-1 w-5 h-5 text-green-600"
+                          />
+                          <span className="flex-1 text-gray-700">
+                            <span className="font-semibold text-green-700">{key}.</span> {value}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-6 border-t-2 border-green-200">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className={`w-full ${isSubmitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white font-bold py-4 px-6 rounded-lg transition duration-300 text-xl shadow-lg flex items-center justify-center gap-2`}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <span>Đang nộp bài...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={24} />
+                  NỘP BÀI
+                </>
+              )}
+            </button>
+            
+            {Object.keys(answers).length < 36 && !isSubmitting && (
+              <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg flex items-start gap-2">
+                <AlertCircle className="text-yellow-600 flex-shrink-0 mt-1" size={20} />
+                <p className="text-yellow-800 text-sm">
+                  Bạn còn {36 - Object.keys(answers).length} câu chưa trả lời. Hãy kiểm tra lại trước khi nộp bài!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TOEFLTest;
