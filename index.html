@@ -227,7 +227,7 @@
 
 <script>
 // *** QUAN TRỌNG: Dán URL Google Apps Script của bạn vào đây ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxe_bx3owX8ljZGuhDytkeQzg_l1_rrlszSlrRJeQ3MeiJQNfpAUYXWXmkqnjdGe5WE5A/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMS6xcE_bm2vaWBcYJvz4lZPuLt9QY1_cwbVS727Z7RTOOYAOxvY5N7Xvkerqdj_bzZw/exec';
 
 // ĐÁP ÁN ĐÚNG
 const correctAnswers = {
@@ -908,9 +908,20 @@ async function submitTest() {
     
     // Tính điểm tổng
     let correctCount = 0;
-    Object.keys(correctAnswers).forEach(q => {
-        if (answers[q] === correctAnswers[q]) correctCount++;
-    });
+let wrongQuestions = []; // Thêm dòng này
+
+Object.keys(correctAnswers).forEach(q => {
+    if (answers[q] === correctAnswers[q]) {
+        correctCount++;
+    } else if (answers[q]) { // Nếu đã trả lời nhưng sai
+        wrongQuestions.push(q);
+    }
+});
+
+// Chuyển mảng thành chuỗi
+const wrongQuestionsText = wrongQuestions.length > 0 
+    ? wrongQuestions.join(', ') 
+    : 'Không có';
     
     const totalScore = Math.round((correctCount / 36) * 100);
     const endTime = new Date();
@@ -949,6 +960,7 @@ async function submitTest() {
         strengthsDetail: strengthsDetail,
         weaknessesDetail: weaknessesDetail,
         recommendationsDetail: recommendationsDetail,
+        wrongQuestions: wrongQuestionsText, // THÊM DÒNG NÀY     
         answers: JSON.stringify(answers)
     };
     
