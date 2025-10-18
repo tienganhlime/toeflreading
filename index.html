@@ -109,15 +109,15 @@
         <!-- Header sticky -->
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6 sticky top-4 z-10">
             <div class="flex justify-between items-center flex-wrap gap-4">
-<div class="flex items-center gap-3">
-    <img src="https://gofirst.pro/images/uploads/62/baseimg/logo_16541442053.png" 
-         alt="LIME Logo" 
-         class="w-12 h-12 object-contain">                
-    <div>
-                    <h1 class="text-2xl font-bold text-green-700">Trung Tâm Tiếng Anh LIME</h1>
-                    <p class="text-green-600 text-sm">Hotline: 0976222792</p>
+                <div class="flex items-center gap-3">
+                    <img src="https://gofirst.pro/images/uploads/62/baseimg/logo_16541442053.png" 
+                         alt="LIME Logo" 
+                         class="w-12 h-12 object-contain">                
+                    <div>
+                        <h1 class="text-2xl font-bold text-green-700">Trung Tâm Tiếng Anh LIME</h1>
+                        <p class="text-green-600 text-sm">Hotline: 0976222792</p>
+                    </div>
                 </div>
-</div>
                 <div class="flex items-center gap-6">
                     <div class="text-right">
                         <p class="text-sm text-gray-600">Học sinh: <span id="headerName"></span></p>
@@ -179,9 +179,9 @@
     <div class="max-w-3xl mx-auto">
         <div class="bg-white rounded-2xl shadow-2xl p-8 mt-8 fade-in">
             <div class="text-center mb-6">
-<img src="https://gofirst.pro/images/uploads/62/baseimg/logo_16541442053.png" 
-         alt="LIME Logo" 
-         class="w-32 h-32 mx-auto mb-4 object-contain">
+                <img src="https://gofirst.pro/images/uploads/62/baseimg/logo_16541442053.png" 
+                     alt="LIME Logo" 
+                     class="w-32 h-32 mx-auto mb-4 object-contain">
                 <h1 class="text-3xl font-bold text-green-700 mb-2">Trung Tâm Tiếng Anh LIME</h1>
                 <p class="text-green-600">Hotline: 0976222792</p>
             </div>
@@ -227,8 +227,9 @@
 
 <script>
 // *** QUAN TRỌNG: Dán URL Google Apps Script của bạn vào đây ***
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1gSDauo8-7dQx1yzXqANwwDOF9x3cseFGDZ3Ut-IWORCdm7mqwa6dUzUQ3XfFbQ-0dg/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXzfReOZPutraHP8WKIBe8ZFdRKUYCq8VFkH7UgQ4BiWucGHHr-jvaJ-m8KxgZpFgwlQ/exec';
 
+// ĐÁP ÁN ĐÚNG
 const correctAnswers = {
     2: 'C', 3: 'B', 4: 'B', 5: 'A', 6: 'B', 7: 'C',
     8: 'B', 9: 'C', 10: 'B', 11: 'C',
@@ -242,7 +243,17 @@ const correctAnswers = {
     35: 'B', 36: 'B', 37: 'B'
 };
 
-// BÀI ĐỌC (Reading Passages)
+// PHÂN LOẠI DẠNG BÀI
+const questionTypes = {
+    vocabulary: [2, 3, 4, 5, 6, 7],
+    notice: [8, 9, 10, 11, 17, 18],
+    email: [12, 13, 14, 15, 16],
+    instructions: [19, 20, 21, 22, 23, 24, 25, 26],
+    story: [27, 28, 29, 30, 31, 32, 33, 34],
+    infoText: [35, 36, 37]
+};
+
+// BÀI ĐỌC
 const readingPassages = {
     'bookfair': {
         title: 'LINCOLN ELEMENTARY SCHOOL - SPRING BOOK FAIR',
@@ -626,6 +637,88 @@ function startTimer() {
     }, 1000);
 }
 
+// HÀM PHÂN TÍCH NĂNG LỰC
+function analyzePerformance(answers) {
+    const analysis = {
+        vocabulary: { correct: 0, total: questionTypes.vocabulary.length },
+        notice: { correct: 0, total: questionTypes.notice.length },
+        email: { correct: 0, total: questionTypes.email.length },
+        instructions: { correct: 0, total: questionTypes.instructions.length },
+        story: { correct: 0, total: questionTypes.story.length },
+        infoText: { correct: 0, total: questionTypes.infoText.length }
+    };
+    
+    // Đếm số câu đúng từng loại
+    for (const [type, questions] of Object.entries(questionTypes)) {
+        questions.forEach(qNum => {
+            if (answers[qNum] === correctAnswers[qNum]) {
+                analysis[type].correct++;
+            }
+        });
+    }
+    
+    // Tính phần trăm
+    const scores = {};
+    for (const [type, data] of Object.entries(analysis)) {
+        scores[type] = Math.round((data.correct / data.total) * 100);
+    }
+    
+    return scores;
+}
+
+// HÀM ƯỚC LƯỢNG CẤP ĐỘ
+function estimateLevel(totalScore) {
+    if (totalScore >= 90) return 'Level 5 (Excellent)';
+    if (totalScore >= 75) return 'Level 4 (Good)';
+    if (totalScore >= 60) return 'Level 3 (Average)';
+    if (totalScore >= 45) return 'Level 2 (Developing)';
+    return 'Level 1 (Beginning)';
+}
+
+// HÀM TẠO GỢI Ý CẢI THIỆN
+function generateRecommendations(scores) {
+    const weak = [];
+    const strong = [];
+    
+    const typeNames = {
+        vocabulary: 'Từ vựng',
+        notice: 'Đọc thông báo',
+        email: 'Đọc email',
+        instructions: 'Đọc hướng dẫn',
+        story: 'Đọc truyện',
+        infoText: 'Đọc bài thông tin'
+    };
+    
+    for (const [type, score] of Object.entries(scores)) {
+        if (score >= 75) {
+            strong.push(typeNames[type]);
+        } else if (score < 60) {
+            weak.push(typeNames[type]);
+        }
+    }
+    
+    let recommendations = '';
+    
+    if (weak.length > 0) {
+        recommendations += 'Cần cải thiện: ' + weak.join(', ') + '. ';
+        
+        if (weak.includes('Từ vựng')) {
+            recommendations += 'Luyện từ vựng hàng ngày qua flashcards. ';
+        }
+        if (weak.some(w => w.includes('Đọc'))) {
+            recommendations += 'Đọc nhiều bài ngắn để nâng cao kỹ năng đọc hiểu. ';
+        }
+    } else {
+        recommendations += 'Học sinh làm bài rất tốt! Tiếp tục duy trì. ';
+    }
+    
+    return {
+        strong: strong.length > 0 ? strong.join(', ') : 'Chưa có điểm mạnh nổi bật',
+        weak: weak.length > 0 ? weak.join(', ') : 'Không có điểm yếu đáng kể',
+        recommendations: recommendations
+    };
+}
+
 async function submitTest() {
     clearInterval(timerInterval);
     
@@ -636,24 +729,41 @@ async function submitTest() {
         <span>Đang nộp bài...</span>
     `;
     
+    // Tính điểm tổng
     let correctCount = 0;
     Object.keys(correctAnswers).forEach(q => {
         if (answers[q] === correctAnswers[q]) correctCount++;
     });
     
-    const score = Math.round((correctCount / 36) * 100);
+    const totalScore = Math.round((correctCount / 36) * 100);
     const endTime = new Date();
     const timeUsed = Math.round((endTime - startTime) / 60000);
     
+    // Phân tích chi tiết
+    const scores = analyzePerformance(answers);
+    const level = estimateLevel(totalScore);
+    const suggestions = generateRecommendations(scores);
+    
+    // Dữ liệu gửi lên Google Sheet
     const dataToSend = {
         timestamp: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
         name: studentInfo.name,
         class: studentInfo.class,
         parentPhone: studentInfo.parentPhone,
-        score: score,
+        score: totalScore,
         correctAnswers: correctCount,
         totalQuestions: 36,
         timeUsed: timeUsed + ' phút',
+        vocabularyScore: scores.vocabulary,
+        noticeScore: scores.notice,
+        emailScore: scores.email,
+        instructionsScore: scores.instructions,
+        storyScore: scores.story,
+        infoTextScore: scores.infoText,
+        estimatedLevel: level,
+        strongPoints: suggestions.strong,
+        weakPoints: suggestions.weak,
+        recommendations: suggestions.recommendations,
         answers: JSON.stringify(answers)
     };
     
